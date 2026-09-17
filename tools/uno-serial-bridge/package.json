@@ -1,0 +1,15 @@
+{
+  "name": "uno-serial-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Temporary stand-in for the ESP32: reads the Uno's USB debug output directly and publishes it to MQTT, so you can see live sensor data on the dashboard before the Uno<->ESP32 serial link is wired.",
+  "scripts": {
+    "list-ports": "node index.js --list",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.10.1",
+    "serialport": "^12.0.0"
+  }
+}

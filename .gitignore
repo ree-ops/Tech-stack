@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.expo/
+.expo-shared/
+*.log
+.env
+.DS_Store
+*.tsbuildinfo
+src/dashboard/vite.config.js
+src/dashboard/vite.config.d.ts

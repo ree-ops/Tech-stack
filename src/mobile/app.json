@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Lowveld Grove",
+    "slug": "lowveld-grove-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "extra": {
+      "bridgeWsUrl": "ws://192.168.41.89:8080/ws",
+      "bridgeApiUrl": "http://192.168.41.89:8080/api",
+      "moistureThreshold": 28
+    }
+  }
+}
