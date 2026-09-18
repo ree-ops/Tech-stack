@@ -25,3 +25,12 @@ export interface EventLogEntry {
   message: string;
   ts: number;
 }
+
+export interface WeatherSnapshot {
+  temp_c: number;
+  humidity_pct: number;
+  condition: string;
+  rain_expected: boolean;
+  rain_probability_pct: number | null;
+  updated_at: number;
+}

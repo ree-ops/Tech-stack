@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { WS_URL } from '../lib/config';
-import type { BridgeMessage, EventLogEntry, ZoneStatus } from '../lib/types';
+import type { BridgeMessage, EventLogEntry, WeatherSnapshot, ZoneStatus } from '../lib/types';
 
 export type ConnectionStatus = 'connecting' | 'open' | 'closed';
 
@@ -12,6 +12,7 @@ export function useZoneFeed() {
   const [zones, setZones] = useState<ZoneStatus[]>([]);
   const [history, setHistory] = useState<Record<string, ZoneStatus[]>>({});
   const [events, setEvents] = useState<EventLogEntry[]>([]);
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -45,6 +46,8 @@ export function useZoneFeed() {
           });
         } else if (message.type === 'event') {
           setEvents((prev) => [message.payload, ...prev].slice(0, MAX_LOG));
+        } else if (message.type === 'weather') {
+          setWeather(message.payload);
         }
       };
     }
@@ -56,5 +59,5 @@ export function useZoneFeed() {
     };
   }, []);
 
-  return { status, zones, history, events };
+  return { status, zones, history, events, weather };
 }

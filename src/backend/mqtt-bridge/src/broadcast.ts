@@ -1,13 +1,17 @@
 import type { WebSocket } from 'ws';
-import type { EventLogEntry, ZoneStatus } from './types.js';
+import type { EventLogEntry, WeatherSnapshot, ZoneStatus } from './types.js';
 
 const clients = new Set<WebSocket>();
 let latestStatuses: ZoneStatus[] = [];
+let latestWeather: WeatherSnapshot | null = null;
 
 export function registerClient(ws: WebSocket) {
   clients.add(ws);
   if (latestStatuses.length) {
     ws.send(JSON.stringify({ type: 'zones', payload: latestStatuses }));
+  }
+  if (latestWeather) {
+    ws.send(JSON.stringify({ type: 'weather', payload: latestWeather }));
   }
   ws.on('close', () => clients.delete(ws));
 }
@@ -21,8 +25,17 @@ export function broadcastEvent(entry: EventLogEntry) {
   broadcast({ type: 'event', payload: entry });
 }
 
+export function broadcastWeather(weather: WeatherSnapshot) {
+  latestWeather = weather;
+  broadcast({ type: 'weather', payload: weather });
+}
+
 export function getLatestZoneStatuses() {
   return latestStatuses;
+}
+
+export function getLatestWeatherSnapshot() {
+  return latestWeather;
 }
 
 function broadcast(message: unknown) {

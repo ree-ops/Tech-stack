@@ -1,4 +1,5 @@
 import { config } from './config.js';
+import { getHumidityDryingMultiplier } from './weather.js';
 import { ZONES } from './zones.js';
 import type { StressCode, ZoneStatus, ZoneTelemetry } from './types.js';
 
@@ -21,15 +22,33 @@ const MIN_TREND_WINDOW_MS = RECENCY_WINDOW_MS;
 const MOISTURE_DEADBAND_PCT = 1.5;
 const TEMP_DEADBAND_C = 0.8;
 
-const history = new Map<string, ZoneTelemetry[]>();
+type DataSource = 'real' | 'simulated';
+interface HistoryPoint extends ZoneTelemetry {
+  source: DataSource;
+}
 
-function pushHistory(t: ZoneTelemetry): ZoneTelemetry[] {
+const history = new Map<string, HistoryPoint[]>();
+
+function pushHistory(t: ZoneTelemetry, source: DataSource): HistoryPoint[] {
   const list = history.get(t.zone_id) ?? [];
-  list.push(t);
+  list.push({ ...t, source });
   const cutoff = t.ts - config.trendWindowMs;
   while (list.length && list[0].ts < cutoff) list.shift();
   history.set(t.zone_id, list);
   return list;
+}
+
+// A zone switching between real MQTT data and the simulator (or back) is a
+// discontinuity, not a trend — e.g. real data going stale and falling back
+// to the simulator's ~55% baseline looks like a huge "decline" from 100% if
+// compared directly. Only compare samples from the *current* unbroken run
+// of the same source, discarding anything from before the last switch.
+function currentSourceRun(points: HistoryPoint[]): HistoryPoint[] {
+  if (points.length === 0) return points;
+  const currentSource = points[points.length - 1].source;
+  let start = points.length - 1;
+  while (start > 0 && points[start - 1].source === currentSource) start--;
+  return points.slice(start);
 }
 
 /** Rate of change per hour, comparing the mean of each half of the window. */
@@ -52,26 +71,39 @@ function trendPerHour(points: { ts: number; value: number }[], deadband: number)
 
 function classify(hoursToCritical: number | null, moisture: number, temp: number): StressCode {
   if (moisture <= config.criticalMoisture || temp >= config.criticalTemp) return 'CRITICAL';
-  if (hoursToCritical === null) return 'OK';
+
+  const tempComfortable = temp < config.criticalTemp - 8;
+
+  // Comfortably healthy — well above the shade-cloth trigger, temp well
+  // below critical. No amount of short-window trend wobble should raise an
+  // alarm here: a zone at 100% moisture isn't "WATCH" just because a noisy
+  // 2-minute window happened to trend downward. Ignore the projection
+  // entirely in this band, before it's even looked at.
+  if (moisture > config.moistureThreshold * 2 && tempComfortable) return 'OK';
+
+  // Already past the shade-cloth trigger? That's real stress whether or not
+  // there's an active trend right now.
+  const alreadyStressed = moisture <= config.moistureThreshold || temp >= config.criticalTemp - 8;
+  if (hoursToCritical === null) return alreadyStressed ? 'WATCH' : 'OK';
 
   // A short recent dip (e.g. a sensor drying out after being wet, or a few
   // seconds of noise) can extrapolate into an alarming-looking "critical in
   // 20 minutes" even while the zone is nowhere near critical in absolute
   // terms. Only trust the projection enough to escalate past WATCH once the
-  // zone is already in the shade-cloth threshold's neighbourhood — a linear
-  // projection from 97% moisture isn't a real warning, whatever its slope.
+  // zone is already in the shade-cloth threshold's neighbourhood.
   const nearCritical = moisture <= config.moistureThreshold * 1.5 || temp >= config.criticalTemp - 4;
-  if (!nearCritical) return hoursToCritical <= 24 ? 'WATCH' : 'OK';
+  if (!nearCritical) return alreadyStressed || hoursToCritical <= 24 ? 'WATCH' : 'OK';
 
   if (hoursToCritical <= 1) return 'CRITICAL';
   if (hoursToCritical <= 6) return 'WARNING';
   if (hoursToCritical <= 24) return 'WATCH';
-  return 'OK';
+  return alreadyStressed ? 'WATCH' : 'OK';
 }
 
 /** Detects how fast a zone is drying/warming and estimates hours until critical stress. */
-export function evaluate(telemetry: ZoneTelemetry): ZoneStatus {
-  const points = pushHistory(telemetry);
+export function evaluate(telemetry: ZoneTelemetry, source: DataSource): ZoneStatus {
+  const allPoints = pushHistory(telemetry, source);
+  const points = currentSourceRun(allPoints);
   const windowSpanMs = points.length > 1 ? points[points.length - 1].ts - points[0].ts : 0;
   const haveEnoughHistory = windowSpanMs >= MIN_TREND_WINDOW_MS;
 
@@ -85,8 +117,14 @@ export function evaluate(telemetry: ZoneTelemetry): ZoneStatus {
   const alreadyCritical = telemetry.soil_moisture <= config.criticalMoisture || telemetry.canopy_temp >= config.criticalTemp;
 
   // Only project forward when the trend is actually heading toward the critical side.
+  // Low ambient humidity speeds up evaporation beyond what the sensor trend
+  // alone shows (and vice versa for humid air) — see weather.ts. Only applies
+  // to the moisture projection; canopy temp isn't affected by soil humidity.
+  const humidityDryingMultiplier = getHumidityDryingMultiplier();
   const hoursFromMoisture =
-    moistureRate < 0 ? (telemetry.soil_moisture - config.criticalMoisture) / -moistureRate : null;
+    moistureRate < 0
+      ? (telemetry.soil_moisture - config.criticalMoisture) / -moistureRate / humidityDryingMultiplier
+      : null;
   const hoursFromTemp =
     tempRate > 0 ? (config.criticalTemp - telemetry.canopy_temp) / tempRate : null;
 

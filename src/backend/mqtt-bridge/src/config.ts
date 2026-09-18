@@ -15,4 +15,17 @@ export const config = {
   criticalTemp: Number(process.env.CRITICAL_TEMP ?? 36),
   // Sliding window used to estimate drying/warming rate via linear regression.
   trendWindowMs: Number(process.env.TREND_WINDOW_MS ?? 10 * 60 * 1000),
+
+  // OpenWeatherMap — used to defer simulated irrigation when rain is
+  // already on the way, and to show current conditions on the dashboard.
+  openWeatherApiKey: process.env.OPENWEATHER_API_KEY ?? '',
+  weatherLat: Number(process.env.WEATHER_LAT ?? -25.4547),
+  weatherLon: Number(process.env.WEATHER_LON ?? 30.9694),
+  weatherPollIntervalMs: Number(process.env.WEATHER_POLL_INTERVAL_MS ?? 10 * 60 * 1000),
+
+  // Supabase — persists zone history beyond the in-memory prediction
+  // window, for real historical charts / reporting later.
+  supabaseUrl: process.env.SUPABASE_URL ?? '',
+  supabaseKey: process.env.SUPABASE_KEY ?? '',
+  supabaseLogIntervalMs: Number(process.env.SUPABASE_LOG_INTERVAL_MS ?? 30 * 1000),
 };

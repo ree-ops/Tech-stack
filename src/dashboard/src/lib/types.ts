@@ -23,6 +23,16 @@ export interface EventLogEntry {
   ts: number;
 }
 
+export interface WeatherSnapshot {
+  temp_c: number;
+  humidity_pct: number;
+  condition: string;
+  rain_expected: boolean;
+  rain_probability_pct: number | null;
+  updated_at: number;
+}
+
 export type BridgeMessage =
   | { type: 'zones'; payload: ZoneStatus[] }
-  | { type: 'event'; payload: EventLogEntry };
+  | { type: 'event'; payload: EventLogEntry }
+  | { type: 'weather'; payload: WeatherSnapshot };

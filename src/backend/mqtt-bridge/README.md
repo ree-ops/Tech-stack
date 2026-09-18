@@ -23,6 +23,26 @@ The irrigation pump (`pump_on`) switches on automatically once soil moisture
 drops to `PUMP_MOISTURE_THRESHOLD`, independently of the shade-cloth actuator
 (`actuator_on`, driven by `MOISTURE_THRESHOLD` / `CRITICAL_TEMP`).
 
+`src/weather.ts` polls OpenWeatherMap every `WEATHER_POLL_INTERVAL_MS` (needs
+`OPENWEATHER_API_KEY` set) for the coordinates in `WEATHER_LAT`/`WEATHER_LON`,
+and broadcasts it to clients. If rain is expected in the next ~9 hours,
+simulated zones defer switching the pump on (no point irrigating right before
+the sky does it for free) — the shade cloth still responds to heat/dryness
+regardless. Real hardware zones aren't affected by this: they decide locally
+on-device, per the no-cloud-dependency design; the weather check only
+applies to the simulated fallback.
+
+**Humidity feeds the "hours to critical" projection directly**, for every
+zone (real or simulated) — this one *is* a backend analytics adjustment, not
+an actuation decision, so it applies uniformly. Low ambient humidity means
+faster evaporation than the sensor trend alone would suggest, so
+`getHumidityDryingMultiplier()` in `weather.ts` scales the moisture-based
+projection: >1 shortens the estimate (drying faster than the raw trend
+implies), <1 lengthens it, with 50% humidity as the neutral baseline. It's a
+simple, explainable multiplier, not a full evapotranspiration model — good
+enough for "does this need water in the next hour or the next day," not
+agronomic precision.
+
 ## Setup
 
 ```bash
@@ -37,9 +57,10 @@ Server listens on `http://localhost:8080`, with the live feed at
 ## Endpoints
 
 - `GET /api/zones` — every zone's current status, prediction, and priority rank
+- `GET /api/weather` — latest weather snapshot (`{ weather: WeatherSnapshot | null }`)
 - `POST /api/simulate/heat-stress` — `{ "zone_id": "03" }` drives that simulated zone into a stress event (omit `zone_id` to affect all simulated zones)
 - `POST /api/simulate/reset` — same shape, returns a zone (or all) to healthy
-- `ws://.../ws` — pushes `{ type: 'zones', payload: ZoneStatus[] }` and `{ type: 'event', payload }` messages
+- `ws://.../ws` — pushes `{ type: 'zones', payload: ZoneStatus[] }`, `{ type: 'event', payload }`, and `{ type: 'weather', payload: WeatherSnapshot }` messages
 
 ## Zone status shape
 

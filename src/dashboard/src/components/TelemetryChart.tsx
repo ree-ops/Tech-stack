@@ -33,7 +33,7 @@ export function TelemetryChart({ history }: Props) {
           y={MOISTURE_THRESHOLD}
           stroke="#f59e0b"
           strokeDasharray="6 4"
-          label={{ value: 'shade threshold', fill: '#f59e0b', fontSize: 10 }}
+          label={{ value: 'shade threshold', fill: '#f59e0b', fontSize: 10, position: 'insideBottomRight' }}
         />
         <Line type="monotone" dataKey="soil_moisture" stroke="#38bdf8" dot={false} strokeWidth={2} name="Soil moisture %" />
         <Line type="monotone" dataKey="canopy_temp" stroke="#f87171" dot={false} strokeWidth={2} name="Canopy temp °C" />

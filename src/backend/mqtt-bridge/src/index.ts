@@ -7,6 +7,7 @@ import { config } from './config.js';
 import { connectMqtt } from './mqttClient.js';
 import { router } from './routes.js';
 import { startSimulator } from './simulator.js';
+import { startWeatherPolling } from './weather.js';
 
 const app = express();
 app.use(cors());
@@ -19,6 +20,7 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 wss.on('connection', (ws) => registerClient(ws));
 
 connectMqtt();
+startWeatherPolling();
 
 if (config.simulateOnBoot) {
   startSimulator();

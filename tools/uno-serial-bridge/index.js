@@ -24,9 +24,10 @@ const MQTT_BROKER = 'mqtt://broker.hivemq.com:1883';
 const MQTT_TOPIC = 'lowveld-grove/zone04/telemetry';
 const ZONE_ID = '04';
 
-// Measured from the actual sensor: ~308-316 in dry air, ~32-36 in water.
-const SOIL_DRY_RAW = 312;
-const SOIL_WET_RAW = 34;
+// Measured from the actual sensor (reproduced across two dry/wet cycles):
+// ~1023 (ADC ceiling) in dry air, ~470-474 in water.
+const SOIL_DRY_RAW = 1023;
+const SOIL_WET_RAW = 472;
 const MOISTURE_THRESHOLD = 28;
 const PUMP_MOISTURE_THRESHOLD = 18;
 const CRITICAL_TEMP = 36;

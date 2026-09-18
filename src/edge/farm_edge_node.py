@@ -43,8 +43,8 @@ MQTT_TOPIC = b"lowveld-grove/zone04/telemetry"
 ZONE_ID = "04"
 
 # ---- Calibration (see docs/build-plan.md "Calibration and threshold tuning") ----
-SOIL_DRY_RAW = 312    # measured: ~308-316 in dry air
-SOIL_WET_RAW = 34     # measured: ~32-36 in a cup of water
+SOIL_DRY_RAW = 1023   # measured: ADC ceiling in dry air (reproduced across 2 cycles)
+SOIL_WET_RAW = 472    # measured: ~470-474 in a cup of water
 
 # ---- Thresholds — keep in sync with the backend's .env (mqtt-bridge) ----
 MOISTURE_THRESHOLD = 28        # shade cloth deploys at/below this

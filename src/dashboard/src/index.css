@@ -28,6 +28,49 @@ header h1 {
   margin: 0;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.weather-widget {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.weather-widget-empty {
+  color: #9ca3af;
+}
+
+.weather-temp {
+  font-weight: 700;
+}
+
+.weather-condition {
+  color: #9ca3af;
+}
+
+.weather-humidity {
+  color: #38bdf8;
+}
+
+.weather-rain-badge {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.weather-rain .weather-rain-badge {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
 main {
   flex: 1;
   display: grid;

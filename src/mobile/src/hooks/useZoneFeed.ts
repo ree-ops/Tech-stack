@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { WS_URL } from '../lib/config';
-import type { BridgeMessage, EventLogEntry, ZoneStatus } from '../lib/types';
+import type { BridgeMessage, EventLogEntry, WeatherSnapshot, ZoneStatus } from '../lib/types';
 
 export type ConnectionStatus = 'connecting' | 'open' | 'closed';
 
 const MAX_LOG = 20;
+const MAX_HISTORY_PER_ZONE = 60;
 
 export function useZoneFeed() {
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [zones, setZones] = useState<ZoneStatus[]>([]);
+  const [history, setHistory] = useState<Record<string, ZoneStatus[]>>({});
   const [events, setEvents] = useState<EventLogEntry[]>([]);
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -33,8 +36,18 @@ export function useZoneFeed() {
         const message = JSON.parse(event.data) as BridgeMessage;
         if (message.type === 'zones') {
           setZones(message.payload);
+          setHistory((prev) => {
+            const next = { ...prev };
+            for (const zone of message.payload) {
+              const list = next[zone.zone_id] ?? [];
+              next[zone.zone_id] = [...list.slice(-(MAX_HISTORY_PER_ZONE - 1)), zone];
+            }
+            return next;
+          });
         } else if (message.type === 'event') {
           setEvents((prev) => [message.payload, ...prev].slice(0, MAX_LOG));
+        } else if (message.type === 'weather') {
+          setWeather(message.payload);
         }
       };
     }
@@ -46,5 +59,5 @@ export function useZoneFeed() {
     };
   }, []);
 
-  return { status, zones, events };
+  return { status, zones, history, events, weather };
 }

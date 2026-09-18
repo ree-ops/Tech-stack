@@ -3,6 +3,7 @@ import { broadcastEvent } from './broadcast.js';
 import { recomputeAndBroadcast } from './recompute.js';
 import { isLiveFromRealData, upsertTelemetry } from './zoneRegistry.js';
 import { ZONES } from './zones.js';
+import { isRainExpected } from './weather.js';
 import type { ZoneTelemetry } from './types.js';
 
 interface ZoneSimState {
@@ -48,12 +49,20 @@ function step(state: ZoneSimState): ZoneTelemetry {
   const moisture = Math.round(state.moisture * 10) / 10;
   const temp = Math.round(state.temp * 10) / 10;
 
+  // Rain on the way defers the pump specifically — no point irrigating right
+  // before the sky does it for free. Shade cloth still responds to heat/dryness
+  // regardless, since that's about canopy protection, not water budget. Real
+  // hardware zones aren't affected here — they decide locally on-device, per
+  // the no-cloud-dependency design; only the simulated fallback gets this.
+  const pumpWouldTrigger = moisture <= config.pumpMoistureThreshold;
+  const pumpDeferredByRain = pumpWouldTrigger && isRainExpected();
+
   return {
     zone_id: state.zone_id,
     soil_moisture: moisture,
     canopy_temp: temp,
     actuator_on: moisture <= config.moistureThreshold || temp >= config.criticalTemp,
-    pump_on: moisture <= config.pumpMoistureThreshold,
+    pump_on: pumpWouldTrigger && !pumpDeferredByRain,
     ts: Date.now(),
   };
 }

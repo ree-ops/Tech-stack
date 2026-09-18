@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ConnectionBadge } from '../components/ConnectionBadge';
+import { TelemetryChart } from '../components/TelemetryChart';
+import { WeatherWidget } from '../components/WeatherWidget';
 import { ZoneCard } from '../components/ZoneCard';
 import { useZoneFeed } from '../hooks/useZoneFeed';
 import { API_URL } from '../lib/config';
@@ -14,10 +16,13 @@ async function post(path: string, zoneId: string) {
 }
 
 export function DashboardScreen() {
-  const { status, zones, events } = useZoneFeed();
-  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
+  const { status, zones, history, events, weather } = useZoneFeed();
+  const [manualSelection, setManualSelection] = useState<string | null>(null);
 
   const sortedZones = [...zones].sort((a, b) => a.priority_rank - b.priority_rank);
+  const selectedZoneId = manualSelection ?? sortedZones[0]?.zone_id ?? null;
+  const selectedZone = zones.find((z) => z.zone_id === selectedZoneId) ?? null;
+  const selectedHistory = selectedZoneId ? history[selectedZoneId] ?? [] : [];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -25,6 +30,7 @@ export function DashboardScreen() {
         <Text style={styles.title}>Lowveld Grove</Text>
         <ConnectionBadge status={status} />
       </View>
+      <WeatherWidget weather={weather} />
       <Text style={styles.sectionTitle}>Priority queue — which side needs water first</Text>
 
       {sortedZones.map((zone) => (
@@ -32,11 +38,14 @@ export function DashboardScreen() {
           key={zone.zone_id}
           zone={zone}
           selected={zone.zone_id === selectedZoneId}
-          onSelect={() => setSelectedZoneId(zone.zone_id === selectedZoneId ? null : zone.zone_id)}
+          onSelect={() => setManualSelection(zone.zone_id)}
           onSimulate={() => post('/simulate/heat-stress', zone.zone_id)}
           onReset={() => post('/simulate/reset', zone.zone_id)}
         />
       ))}
+
+      <Text style={styles.sectionTitle}>{selectedZone?.label ?? 'Zone'} trend</Text>
+      <TelemetryChart history={selectedHistory} />
 
       <Text style={styles.sectionTitle}>Event log</Text>
       <View style={styles.log}>
