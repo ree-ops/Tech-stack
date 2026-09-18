@@ -37,11 +37,14 @@ create policy "Allow inserts from the backend"
   to anon
   with check (true);
 
--- Also readable by the same key — this is what a future history-chart
--- feature (or just checking the data landed) will query with. No
--- update/delete policy: history is append-only.
+-- Also readable — this is what the web/mobile history charts query with.
+-- Covers both `anon` (unauthenticated, e.g. testing with curl) and
+-- `authenticated` (a logged-in dashboard/mobile session — auth was added
+-- after this table, and RLS evaluates a signed-in request as `authenticated`,
+-- not `anon`, so both roles need this policy for reads to keep working post-login).
+-- No update/delete policy: history is append-only.
 create policy "Allow reads"
   on zone_telemetry
   for select
-  to anon
+  to anon, authenticated
   using (true);

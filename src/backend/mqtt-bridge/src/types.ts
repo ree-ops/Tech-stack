@@ -2,6 +2,9 @@ export interface ZoneTelemetry {
   zone_id: string;
   soil_moisture: number;
   canopy_temp: number;
+  // Only present for zones with a real DHT22 attached (currently zone04).
+  // Simulated zones and ESP32 nodes without a humidity sensor omit it.
+  humidity_pct?: number;
   actuator_on: boolean;
   pump_on: boolean;
   ts: number;

@@ -9,15 +9,28 @@ import {
   YAxis,
 } from 'recharts';
 import { MOISTURE_THRESHOLD } from '../lib/config';
-import type { ZoneStatus } from '../lib/types';
+
+// Accepts either the live (WebSocket) ZoneStatus history or a long-term
+// history point read back from Supabase — both shapes carry these three
+// fields, which is all this chart actually needs.
+interface ChartPoint {
+  ts: number;
+  soil_moisture: number;
+  canopy_temp: number;
+}
 
 interface Props {
-  history: ZoneStatus[];
+  history: ChartPoint[];
 }
 
 export function TelemetryChart({ history }: Props) {
+  const spanMs = history.length > 1 ? history[history.length - 1].ts - history[0].ts : 0;
+  const showDate = spanMs > 36 * 60 * 60 * 1000;
+
   const data = history.map((t) => ({
-    time: new Date(t.ts).toLocaleTimeString(),
+    time: showDate
+      ? new Date(t.ts).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit' })
+      : new Date(t.ts).toLocaleTimeString(),
     soil_moisture: t.soil_moisture,
     canopy_temp: t.canopy_temp,
   }));

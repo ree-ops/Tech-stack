@@ -43,6 +43,12 @@ export function ZoneStatusCard({ zone, status }: Props) {
               <dt>Time to critical</dt>
               <dd>{formatHoursToCritical(zone.hours_to_critical)}</dd>
             </div>
+            {zone.humidity_pct !== undefined && (
+              <div>
+                <dt>Ambient humidity (DHT22)</dt>
+                <dd>{zone.humidity_pct}%</dd>
+              </div>
+            )}
             <div>
               <dt>Shade cloth</dt>
               <dd>{zone.actuator_on ? 'DEPLOYED' : 'retracted'}</dd>

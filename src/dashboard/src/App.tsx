@@ -2,14 +2,26 @@ import { useMemo, useState } from 'react';
 import { ControlsPanel } from './components/ControlsPanel';
 import { EventLog } from './components/EventLog';
 import { FarmTwinScene } from './components/FarmTwinScene';
+import { HistoryPanel } from './components/HistoryPanel';
+import { LoginPage } from './components/LoginPage';
 import { PriorityQueue } from './components/PriorityQueue';
 import { TelemetryChart } from './components/TelemetryChart';
 import { WeatherWidget } from './components/WeatherWidget';
 import { ZoneStatusCard } from './components/ZoneStatusCard';
+import { useAuth } from './hooks/useAuth';
 import { useZoneFeed } from './hooks/useZoneFeed';
 
 export default function App() {
-  const { status, zones, history, events, weather } = useZoneFeed();
+  const { session, loading, accessToken, signIn, signOut } = useAuth();
+
+  if (loading) return null;
+  if (!session) return <LoginPage signIn={signIn} />;
+
+  return <Dashboard accessToken={accessToken} onSignOut={signOut} />;
+}
+
+function Dashboard({ accessToken, onSignOut }: { accessToken: string | null; onSignOut: () => void }) {
+  const { status, zones, history, events, weather } = useZoneFeed(accessToken);
   const [manualSelection, setManualSelection] = useState<string | null>(null);
 
   const topPriorityZoneId = useMemo(() => {
@@ -39,6 +51,9 @@ export default function App() {
         <div className="header-right">
           <WeatherWidget weather={weather} />
           <ZoneStatusCard zone={selectedZone} status={status} />
+          <button className="sign-out-button" onClick={onSignOut}>
+            Sign out
+          </button>
         </div>
       </header>
       <main>
@@ -53,6 +68,8 @@ export default function App() {
           <TelemetryChart history={selectedHistory} />
 
           {selectedZone && <ControlsPanel zoneId={selectedZone.zone_id} zoneLabel={selectedZone.label} />}
+
+          <HistoryPanel zoneId={selectedZoneId} zoneLabel={selectedZone?.label ?? 'Zone'} />
 
           <h2>Event log</h2>
           <EventLog events={events} />

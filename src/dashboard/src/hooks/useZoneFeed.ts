@@ -7,7 +7,7 @@ export type ConnectionStatus = 'connecting' | 'open' | 'closed';
 const MAX_HISTORY_PER_ZONE = 60;
 const MAX_LOG = 20;
 
-export function useZoneFeed() {
+export function useZoneFeed(accessToken: string | null) {
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [zones, setZones] = useState<ZoneStatus[]>([]);
   const [history, setHistory] = useState<Record<string, ZoneStatus[]>>({});
@@ -16,10 +16,11 @@ export function useZoneFeed() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    if (!accessToken) return;
     let cancelled = false;
 
     function connect() {
-      const socket = new WebSocket(WS_URL);
+      const socket = new WebSocket(`${WS_URL}?token=${encodeURIComponent(accessToken!)}`);
       wsRef.current = socket;
       setStatus('connecting');
 
@@ -57,7 +58,7 @@ export function useZoneFeed() {
       cancelled = true;
       wsRef.current?.close();
     };
-  }, []);
+  }, [accessToken]);
 
   return { status, zones, history, events, weather };
 }

@@ -6,9 +6,11 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "extra": {
-      "bridgeWsUrl": "ws://192.168.41.89:8080/ws",
-      "bridgeApiUrl": "http://192.168.41.89:8080/api",
-      "moistureThreshold": 28
+      "bridgeWsUrl": "ws://10.75.70.70:8080/ws",
+      "bridgeApiUrl": "http://10.75.70.70:8080/api",
+      "moistureThreshold": 28,
+      "supabaseUrl": "https://xailcxtpyuikbmxcxbpg.supabase.co",
+      "supabaseAnonKey": "sb_publishable_blRaUbdiLRjt4xNpycJzmg_bl40bv4F"
     }
   }
 }

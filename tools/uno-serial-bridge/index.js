@@ -35,8 +35,13 @@ const CRITICAL_TEMP = 36;
 // Matches uno_sensor_node.ino's debug line: "-> ESP32: soil_raw=812  temp=24.6"
 const FULL_LINE_PATTERN = /soil_raw=(\d+)\s+temp=([\d.]+)/;
 
-// Matches the soil-only tutorial sketch's line: "Soil Moisture Value: 308"
-// (no DHT22 in that sketch, so there's no real temperature to report yet).
+// Matches uno_standalone_node.ino's line with real DHT22 readings:
+// "Soil Moisture Value: 465  Temp: 24.6  Humidity: 52.3"
+const SOIL_TEMP_HUMIDITY_PATTERN =
+  /Soil Moisture Value:\s*(\d+)\s+Temp:\s*([\d.]+)\s+Humidity:\s*([\d.]+)/i;
+
+// Matches the older soil-only tutorial sketch's line: "Soil Moisture Value: 308"
+// (no DHT22 in that sketch, so there's no real temperature/humidity to report).
 const SOIL_ONLY_LINE_PATTERN = /Soil Moisture Value:\s*(\d+)/i;
 const PLACEHOLDER_TEMP_C = 24;
 
@@ -73,24 +78,38 @@ function run(portPath) {
 
   parser.on('data', (line) => {
     const fullMatch = line.match(FULL_LINE_PATTERN);
+    const dhtMatch = line.match(SOIL_TEMP_HUMIDITY_PATTERN);
     const soilOnlyMatch = line.match(SOIL_ONLY_LINE_PATTERN);
 
-    if (!fullMatch && !soilOnlyMatch) {
+    if (!fullMatch && !dhtMatch && !soilOnlyMatch) {
       console.log('[serial]', line.trim());
       return;
     }
 
-    const soilRaw = Number(fullMatch ? fullMatch[1] : soilOnlyMatch[1]);
-    const temp = fullMatch ? Number(fullMatch[2]) : PLACEHOLDER_TEMP_C;
-    if (!fullMatch) {
+    let soilRaw;
+    let temp;
+    let humidity;
+
+    if (dhtMatch) {
+      soilRaw = Number(dhtMatch[1]);
+      temp = Number(dhtMatch[2]);
+      humidity = Number(dhtMatch[3]);
+    } else if (fullMatch) {
+      soilRaw = Number(fullMatch[1]);
+      temp = Number(fullMatch[2]);
+    } else {
+      soilRaw = Number(soilOnlyMatch[1]);
+      temp = PLACEHOLDER_TEMP_C;
       console.log('[bridge] no DHT22 in this sketch — using a placeholder temp of', PLACEHOLDER_TEMP_C, 'C');
     }
+
     const moisture = moistureFromRaw(soilRaw);
 
     const payload = JSON.stringify({
       zone_id: ZONE_ID,
       soil_moisture: moisture,
       canopy_temp: temp,
+      ...(humidity !== undefined ? { humidity_pct: humidity } : {}),
       actuator_on: moisture <= MOISTURE_THRESHOLD || temp >= CRITICAL_TEMP,
       pump_on: moisture <= PUMP_MOISTURE_THRESHOLD,
       ts: Date.now(),

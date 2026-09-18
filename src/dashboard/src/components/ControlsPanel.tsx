@@ -1,9 +1,14 @@
 import { API_URL } from '../lib/config';
+import { supabase } from '../lib/supabase';
 
 async function post(path: string, zoneId: string) {
+  const { data } = await supabase.auth.getSession();
   await fetch(`${API_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${data.session?.access_token ?? ''}`,
+    },
     body: JSON.stringify({ zone_id: zoneId }),
   });
 }

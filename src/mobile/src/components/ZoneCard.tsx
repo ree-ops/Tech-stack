@@ -41,6 +41,12 @@ export function ZoneCard({ zone, selected, onSelect, onSimulate, onReset }: Prop
           {zone.temp_rate_c_per_hr}/hr)
         </Text>
       </View>
+      {zone.humidity_pct !== undefined && (
+        <View style={styles.row}>
+          <Text style={styles.metricLabel}>Ambient humidity (DHT22)</Text>
+          <Text style={styles.metricValue}>{zone.humidity_pct}%</Text>
+        </View>
+      )}
       <View style={styles.row}>
         <Text style={styles.metricLabel}>Shade cloth</Text>
         <Text style={styles.metricValue}>{zone.actuator_on ? 'DEPLOYED' : 'retracted'}</Text>

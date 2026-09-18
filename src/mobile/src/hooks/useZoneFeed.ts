@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { WS_URL } from '../lib/config';
+import { TUNNEL_BYPASS_HEADERS, WS_URL } from '../lib/config';
 import type { BridgeMessage, EventLogEntry, WeatherSnapshot, ZoneStatus } from '../lib/types';
 
 export type ConnectionStatus = 'connecting' | 'open' | 'closed';
@@ -7,7 +7,7 @@ export type ConnectionStatus = 'connecting' | 'open' | 'closed';
 const MAX_LOG = 20;
 const MAX_HISTORY_PER_ZONE = 60;
 
-export function useZoneFeed() {
+export function useZoneFeed(accessToken: string | null) {
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [zones, setZones] = useState<ZoneStatus[]>([]);
   const [history, setHistory] = useState<Record<string, ZoneStatus[]>>({});
@@ -16,10 +16,21 @@ export function useZoneFeed() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    if (!accessToken) return;
     let cancelled = false;
 
     function connect() {
-      const socket = new WebSocket(WS_URL);
+      // Third arg (headers) is a React Native WebSocket extension not in the
+      // DOM lib's type definitions — it's a no-op on web, but required here
+      // so loca.lt doesn't intercept the upgrade with its reminder HTML page.
+      const RNWebSocket = WebSocket as unknown as new (
+        url: string,
+        protocols: string[],
+        options: { headers: Record<string, string> },
+      ) => WebSocket;
+      const socket = new RNWebSocket(`${WS_URL}?token=${encodeURIComponent(accessToken!)}`, [], {
+        headers: TUNNEL_BYPASS_HEADERS,
+      });
       wsRef.current = socket;
       setStatus('connecting');
 
@@ -57,7 +68,7 @@ export function useZoneFeed() {
       cancelled = true;
       wsRef.current?.close();
     };
-  }, []);
+  }, [accessToken]);
 
   return { status, zones, history, events, weather };
 }

@@ -2,10 +2,17 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import { MOISTURE_THRESHOLD } from '../lib/config';
-import type { ZoneStatus } from '../lib/types';
+
+// Accepts either the live (WebSocket) ZoneStatus history or a long-term
+// history row read back from Supabase — both shapes carry these two fields,
+// which is all this chart actually needs.
+interface ChartPoint {
+  soil_moisture: number;
+  canopy_temp: number;
+}
 
 interface Props {
-  history: ZoneStatus[];
+  history: ChartPoint[];
 }
 
 const CHART_HEIGHT = 140;
